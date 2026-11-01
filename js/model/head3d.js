@@ -181,7 +181,7 @@ export async function mount(host, cb) {
         b.className = "gh"; b.textContent = `${L(...hs.t)} · ${MAKHARIJ.filter((m) => m.organ === hs.o).reduce((a, m) => a + m.letters.length, 0)}`;
         b.addEventListener("click", () => cb.onView(hs.o));
         el.appendChild(b); layer.appendChild(el);
-        const off = hs.o === "teeth" || hs.o === "lips" ? [-40, 0] : hs.o === "jawf" ? [12, 0] : null;
+        const off = hs.o === "teeth" || hs.o === "lips" ? [-40, 0] : hs.o === "jawf" ? [12, 0] : hs.o === "throat" ? [6, 10] : null;
         items.push({ el, d: { off }, line: null, v: new T.Vector3(X(hs.at[0]), Y(hs.at[1]), 0), to: null });
       }
       dirty = true;

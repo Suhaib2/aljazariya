@@ -1,21 +1,15 @@
 // Мини-плеер внизу экрана и быстрый выбор чтеца и числа повторов.
 // Те же параметры есть в настройках; здесь они меняются на ходу.
-import { html, useState, useEffect, cx } from "../lib.js";
+import { html, cx } from "../lib.js";
 import { V, TOTAL, sectionOf } from "../data/index.js";
 import { useSel } from "../core/store.js";
 import { usePlayer, toggle, next, prev, close as closePlayer, REPEATS, setRepeat, setReciter } from "../core/audio.js";
-import { lib, reciterName, reciterCount, currentReciter, onMediaChange } from "../core/media.js";
-import { go } from "../core/nav.js";
+import { lib, reciterName, reciterCount, currentReciter, useMediaLib } from "../core/media.js";
+import { go, route } from "../core/nav.js";
 import { L, bayt, secName } from "../core/i18n.js";
 import { Icon, openPop, closePop } from "./kit.js";
 
 const repLabel = (v) => (v ? v + "×" : "∞");
-
-function useLib() {
-  const [, bump] = useState(0);
-  useEffect(() => onMediaChange(() => bump((x) => x + 1)), []);
-  return lib;
-}
 
 function MenuItem({ on, onPick, children, sub }) {
   return html`<button role="menuitemradio" aria-checked=${String(on)} class=${cx("lang-opt", on && "on")} onClick=${() => { onPick(); closePop(); }}>
@@ -40,9 +34,9 @@ function RepeatMenu() {
   </div>`;
 }
 
-// Две кнопки: чтец и повтор. Кнопку чтеца не показываем, пока записей нет.
-export function PlayerOptions({ compact }) {
-  useLib();
+// Две кнопки: чтец и повтор. Кнопку чтеца не показываем, пока записей нет; повтора нет у целой записи матна.
+export function PlayerOptions({ compact, noRepeat }) {
+  useMediaLib();
   useSel((d) => d.s.prefs.reciter);
   const repeat = useSel((d) => d.s.prefs.repeat);
   const name = reciterName(currentReciter());
@@ -50,8 +44,8 @@ export function PlayerOptions({ compact }) {
   return html`<div class=${cx("p-opts", compact && "compact")}>
     ${lib.reciters.length > 0 && html`<button class="p-opt" title=${tRec} aria-label=${`${tRec}: ${name}`} aria-haspopup="menu"
       onClick=${(e) => openPop(e.currentTarget, () => html`<${ReciterMenu} />`, { cls: "pop-lang" })}><${Icon} name="mic" /><span class="p-opt-t">${name}</span><${Icon} name="chevD" /></button>`}
-    <button class="p-opt" title=${tRep} aria-label=${`${tRep}: ${repLabel(repeat)}`} aria-haspopup="menu"
-      onClick=${(e) => openPop(e.currentTarget, () => html`<${RepeatMenu} />`, { cls: "pop-lang" })}><${Icon} name="repeat" /><span class="num">${repLabel(repeat)}</span></button>
+    ${!noRepeat && html`<button class="p-opt" title=${tRep} aria-label=${`${tRep}: ${repLabel(repeat)}`} aria-haspopup="menu"
+      onClick=${(e) => openPop(e.currentTarget, () => html`<${RepeatMenu} />`, { cls: "pop-lang" })}><${Icon} name="repeat" /><span class="num">${repLabel(repeat)}</span></button>`}
   </div>`;
 }
 
@@ -63,17 +57,18 @@ export function MiniPlayer() {
   const rep = usePlayer((p) => p.rep);
   const repeat = useSel((d) => d.s.prefs.repeat);
   const missing = usePlayer((p) => p.error === "no-audio");
-  useLib();
+  const full = usePlayer((p) => !!p.full);
+  useMediaLib();
   if (!n) return null;
   return html`<div class="mini" role="region" aria-label=${L("Плеер", "Player", "المشغّل")}>
     <button class="icon-btn sm" aria-label=${L("Предыдущий бейт", "Previous bayt", "البيت السابق")} onClick=${prev}><${Icon} name="prev" /></button>
     <button class="play-btn" aria-label=${playing ? L("Пауза", "Pause", "إيقاف مؤقت") : L("Играть", "Play", "تشغيل")} onClick=${() => toggle()}><${Icon} name=${playing ? "pause" : "play"} /></button>
     <button class="icon-btn sm" aria-label=${L("Следующий бейт", "Next bayt", "البيت التالي")} onClick=${next}><${Icon} name="next" /></button>
-    <div class="m-info" onClick=${() => go("v" + n)} title=${L("Открыть бейт", "Open bayt", "فتح البيت")}>
+    <div class="m-info" onClick=${() => (full ? route().name !== "listen" && go("listen") : go("v" + n))} title=${full ? L("Слушать матн", "Listen to the matn", "الاستماع إلى المتن") : L("Открыть бейт", "Open bayt", "فتح البيت")}>
       <div class="m-ar" lang="ar">${V[n].a[0].replace(/[{}]/g, "")}</div>
-      <div class="m-meta"><b class="num">${bayt(n)}</b><span class="hide-sm">${secName(sectionOf(n))}</span>${queue && html`<span class="num">· ${queue}</span>`}${repeat !== 1 && playing && html`<span class="num">· ${rep + 1}${repeat ? "/" + repeat : ""}</span>`}${missing && html`<span>· ${L("записи пока нет", "no recording yet", "لا تسجيل بعد")}</span>`}</div>
+      <div class="m-meta"><b class="num">${bayt(n)}</b><span class="hide-sm">${secName(sectionOf(n))}</span>${queue && html`<span class="num">· ${queue}</span>`}${full ? html`<span>· ${L("целая запись", "whole recording", "التسجيل الكامل")}</span>` : repeat !== 1 && playing && html`<span class="num">· ${rep + 1}${repeat ? "/" + repeat : ""}</span>`}${missing && html`<span>· ${L("записи пока нет", "no recording yet", "لا تسجيل بعد")}</span>`}</div>
     </div>
-    <${PlayerOptions} compact=${true} />
+    <${PlayerOptions} compact=${true} noRepeat=${full} />
     <button class="icon-btn sm" aria-label=${L("Закрыть плеер", "Close player", "إغلاق المشغّل")} onClick=${closePlayer}><${Icon} name="x" /></button>
     <div class="m-prog"><i style=${`width:${Math.round(prog * 100)}%`}></i></div>
   </div>`;

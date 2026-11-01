@@ -10,7 +10,7 @@ import { L, LANG, bayt, secName } from "../core/i18n.js";
 import { Icon, Seg, toast } from "../ui/kit.js";
 import { VerseText, Translation, StatusSeg, VerseActions, VNum, Sharh, displayOf } from "../ui/verse.js";
 
-const srcLabel = (k) => (k === "shared" ? L("запись чтеца", "reciter’s recording", "تسجيل القارئ") : "");
+const srcLabel = (k) => (k === "shared" ? L("запись чтеца", "reciter’s recording", "تسجيل القارئ") : k === "full" ? L("целая запись матна", "whole recitation", "التسجيل الكامل للمتن") : "");
 
 export function PlayerRow({ n }) {
   const repeat = useSel((d) => d.s.prefs.repeat);

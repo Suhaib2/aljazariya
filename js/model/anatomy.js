@@ -201,7 +201,7 @@ export const MARKS = {
     { mk: "fa", at: [62, 440], to: ANCHOR.fa }, { mk: "safir", at: [50, 466], to: ANCHOR.safir },
   ],
   teeth: [
-    { mk: "shafatan", at: [104, 362], to: ANCHOR.shafatan }, { mk: "fa", at: [116, 386], to: ANCHOR.fa }, { mk: "lithawiya", at: [124, 358], to: [129, 367] },
+    { mk: "shafatan", at: [98, 364], to: ANCHOR.shafatan }, { mk: "fa", at: [116, 386], to: ANCHOR.fa }, { mk: "lithawiya", at: [124, 358], to: [129, 367] },
     { mk: "safir", at: [140, 384], to: ANCHOR.safir }, { mk: "nitiya", at: [140, 340], to: ANCHOR.nitiya }, { mk: "nun", at: [156, 360], to: ANCHOR.nun },
     { mk: "lam", at: [166, 334], to: ANCHOR.lam }, { mk: "ra", at: [178, 352], to: ANCHOR.ra },
   ],

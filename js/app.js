@@ -10,7 +10,7 @@ import { initMedia, enableManage } from "./core/media.js";
 import { norm, isArabic } from "./core/arabic.js";
 import { go, useRoute } from "./core/nav.js";
 import { L, LANG, TR, WBW, onLang, langReady, bayt, vTr, vSharh, secName, ruleL, termL } from "./core/i18n.js";
-import { SHOW_CABINET } from "./config.js";
+import { SHOW_CABINET, SHOW_ADMIN } from "./config.js";
 import { Icon, ToastHost, PopHost, Dialog, toast } from "./ui/kit.js";
 import { LangButton, ThemeButton } from "./ui/lang.js";
 import { MiniPlayer } from "./ui/player.js";
@@ -41,7 +41,7 @@ const NAV = [
 ];
 // Пункт админ-панели появляется только после входа администратора.
 const ADMIN_ITEM = { id: "admin", ico: "edit", t: () => L("Админ-панель", "Admin panel", "لوحة الإدارة") };
-const navFor = (admin) => (admin ? [...NAV, ADMIN_ITEM] : NAV);
+const navFor = (admin) => (admin && SHOW_ADMIN ? [...NAV, ADMIN_ITEM] : NAV);
 const TABS = ["home", "read", "lessons", "memorize"];
 const SECTION_OF_ROUTE = { study: "read", rule: "rules", test: "tests", review: "memorize" };
 function titleOf(r, admin) {
@@ -122,7 +122,7 @@ function Footer() {
     <div class="foot-mail"><span class="foot-q"><${Icon} name="mail" />${L("Нашли ошибку в тексте или переводе? Напишите нам:", "Found a mistake in the text or translation? Write to us:", "وجدت خطأً في النص أو الترجمة؟ راسلنا:")}</span>
       <span class="row" style="gap:4px;flex-wrap:nowrap"><a class="mail" href=${"mailto:" + email} dir="ltr">${email}</a>
       <button class="icon-btn sm" title=${L("Скопировать адрес", "Copy the address", "نسخ العنوان")} aria-label=${L("Скопировать адрес", "Copy the address", "نسخ العنوان")} onClick=${copy}><${Icon} name="copy" /></button></span></div>
-    <div class="foot-meta"><button class="foot-key" type="button" onClick=${() => go("admin")}>©</button> <span class="num">${new Date().getFullYear()}</span> · ${L("Матн аль-Джазария", "Matn al-Jazariyya", "متن الجزرية")}</div>
+    <div class="foot-meta">${SHOW_ADMIN ? html`<button class="foot-key" type="button" onClick=${() => go("admin")}>©</button>` : "©"} <span class="num">${new Date().getFullYear()}</span> · ${L("Матн аль-Джазария", "Matn al-Jazariyya", "متن الجزرية")}</div>
   </footer>`;
 }
 

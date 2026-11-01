@@ -118,7 +118,7 @@ export function Model2D({ view, setView, sel, onSelect, labels }) {
     </svg>
     <div class="marks">
       ${labels && !busy && (LABELS[shown] || []).map((l) => { const [x, y] = map(l.at); return html`<span class="alabel-html" style=${`position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);font-size:11.5px;color:var(--a-label);white-space:nowrap;pointer-events:none;font-weight:500;text-shadow:0 0 6px var(--paper)`}>${Array.isArray(l.t) ? T(...l.t) : l.t}</span>`; })}
-      ${compact ? !busy && HOTSPOTS.map((hs) => { const [x, y] = map(hs.at); const count = MAKHARIJ_LIST.filter((m) => m.organ === hs.o).reduce((a, m) => a + m.letters.length, 0);
+      ${compact ? !busy && HOTSPOTS.map((hs) => { const [x, y0] = map(hs.at), y = y0 + (hs.o === "throat" ? 9 : 0); const count = MAKHARIJ_LIST.filter((m) => m.organ === hs.o).reduce((a, m) => a + m.letters.length, 0);
           return html`<div class="mk" style=${`left:${x}px;top:${y}px;--k:${KCOLOR[hs.o]}`}><button class="gh" onClick=${() => setView(VIEW_OF_ORGAN[hs.o])}>${T(...hs.t)} · ${count}</button></div>`; })
         : marks.map((m, i) => { const [x, y] = map(m.at); return html`<${Marker} key=${shown + i} m=${m} x=${x} y=${y} sel=${sel} big=${big} onSelect=${onSelect} onTip=${onTip} />`; })}
     </div>

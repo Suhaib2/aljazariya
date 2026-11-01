@@ -1,19 +1,30 @@
 // Аудиозаписи бейтов: общая библиотека чтецов (загружает администратор) и разбор ZIP при загрузке.
-import { loadScript } from "../lib.js";
+import { loadScript, useState, useEffect } from "../lib.js";
+import { TOTAL } from "../data/index.js";
 import { L, LANG } from "./i18n.js";
 import { D } from "./store.js";
 
 const JSZIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
 const MUXER_URL = "https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.js";
 const listeners = new Set();
+let ver = 0;
 export const onMediaChange = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
-const changed = () => listeners.forEach((fn) => fn());
+const changed = () => { ver++; listeners.forEach((fn) => fn()); };
+// Перерисовка при изменении библиотеки; изменение между отрисовкой и подпиской тоже не теряется.
+export function useMediaLib() {
+  const [, bump] = useState(0);
+  const seen = ver;
+  useEffect(() => { const off = onMediaChange(() => bump((x) => x + 1)); if (ver !== seen) bump((x) => x + 1); return off; }, []);
+  return lib;
+}
 
-// db shared/audio: { reciters: [{ id, name, names: { ru, en, ar } }], maps: { [id чтеца]: { [бейт]: { id, type, name, size, t } } } }.
+// db shared/audio: { reciters: [{ id, name, names: { ru, en, ar }, full }], maps: { [id чтеца]: { [бейт]: { id, type, name, size, t } } } }.
 // name — имя, введённое при добавлении; names — имя на каждом языке интерфейса.
 // Старый формат { map } — это один чтец «r1». published — файлы, опубликованные рядом со страницей.
-// audio/manifest.json на своём хостинге, где базы нет: { reciters: [{ id, name, names, files: { [бейт]: путь } }], files: { [бейт]: путь } };
+// audio/manifest.json на своём хостинге, где базы нет: { reciters: [{ id, name, names, files: { [бейт]: путь }, full }], files: { [бейт]: путь } };
 // записи его чтецов попадают в maps как { url }.
+// full — целая запись матна у чтеца (вкладка «Слушать»): { id или url, dur, marks }; marks — секунда записи,
+// с которой начинается каждый из 109 бейтов.
 export const lib = { reciters: [], maps: {}, published: {}, assets: null, db: null, canManage: false };
 function parseShared(data) {
   if (data && Array.isArray(data.reciters)) return { reciters: data.reciters.filter((r) => r && r.id), maps: data.maps || {} };
@@ -70,6 +81,13 @@ export async function sourceFor(n) {
   return null;
 }
 export const hasFileAudio = (n) => lib.reciters.some((r) => playable(lib.maps[r.id]?.[n])) || !!lib.published[n];
+// Целая запись матна: у выбранного чтеца, иначе у первого, у кого она есть. Без отметок бейтов она не годится.
+const hasFullRec = (r) => !!(r.full?.id || r.full?.url) && r.full.marks?.length >= TOTAL;
+export const hasFull = () => lib.reciters.some(hasFullRec);
+export function fullFor(pref = D.s.prefs.reciter) {
+  const r = [...lib.reciters].sort((a, b) => (a.id === pref ? -1 : b.id === pref ? 1 : 0)).find(hasFullRec);
+  return r ? { url: r.full.url || "/_blob/" + r.full.id, marks: r.full.marks, dur: r.full.dur || 0, reciter: reciterName(r), rid: r.id } : null;
+}
 
 // ---------- разбор имён и архивов ----------
 export const AUDIO_EXT = /\.(mp3|m4a|mp4|aac|wav|ogg|oga|opus|webm|weba|flac)$/i;
@@ -170,7 +188,7 @@ export async function renameReciter(rid, names) {
 // Первый в списке — чтец по умолчанию для режима «авто».
 export async function makeDefaultReciter(rid) { const r = lib.reciters.find((x) => x.id === rid); if (r) await writeShared([r, ...lib.reciters.filter((x) => x.id !== rid)], lib.maps); }
 export async function removeReciter(rid, onProgress) {
-  const ids = Object.values(lib.maps[rid] || {}).map((x) => x?.id).filter(Boolean);
+  const ids = [...Object.values(lib.maps[rid] || {}).map((x) => x?.id), lib.reciters.find((r) => r.id === rid)?.full?.id].filter(Boolean);
   const maps = { ...lib.maps }; delete maps[rid];
   await writeShared(lib.reciters.filter((r) => r.id !== rid), maps);
   await deleteAssets(ids, onProgress);
@@ -202,7 +220,7 @@ export async function storageUsage() {
   if (!lib.assets) return null;
   try {
     const { assets, usage } = await lib.assets.list();
-    const used = new Set(Object.values(lib.maps).flatMap((m) => Object.values(m || {}).map((x) => x?.id)));
+    const used = new Set([...Object.values(lib.maps).flatMap((m) => Object.values(m || {}).map((x) => x?.id)), ...lib.reciters.map((r) => r.full?.id)]);
     return { usage, orphans: assets.filter((a) => !used.has(a.id)) };
   } catch { return null; }
 }
